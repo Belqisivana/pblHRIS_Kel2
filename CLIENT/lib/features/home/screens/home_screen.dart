@@ -13,11 +13,6 @@ class HomeScreen extends StatelessWidget {
       ),
       drawer: const AppDrawer(),
       body: Center(
-<<<<<<< HEAD
-        child: ElevatedButton(
-          onPressed: () => context.go('/superior'),
-          child: const Text("Lihat Data Superior"),
-=======
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -59,7 +54,6 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
->>>>>>> 3e544c07ad744a462140f624dcff9c15f3812863
         ),
       ),
     );
