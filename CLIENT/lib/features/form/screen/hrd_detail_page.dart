@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:universal_html/html.dart' as html;
+import 'dart:html' as html;
 import '../services/api_service.dart';
 
 class HrdDetailPage extends StatelessWidget {
@@ -13,10 +13,26 @@ class HrdDetailPage extends StatelessWidget {
     if (dateStr == null || dateStr.isEmpty) return '-';
     try {
       final date = DateTime.parse(dateStr);
-      return DateFormat('dd MMMM yyyy').format(date);
+      return DateFormat('dd MMM yyyy').format(date);
     } catch (e) {
       return dateStr;
     }
+  }
+
+  // ✅ FIX: Format range tanggal sama seperti di list
+  String formatDateRange() {
+    final mulai = surat['tanggal_mulai'];
+    final selesai = surat['tanggal_selesai'];
+    
+    if (mulai != null && selesai != null) {
+      return '${formatDate(mulai)} - ${formatDate(selesai)}';
+    }
+    
+    if (surat['tanggal'] != null) {
+      return formatDate(surat['tanggal']);
+    }
+    
+    return '-';
   }
 
   Future<void> updateStatus(BuildContext context, String status) async {
@@ -59,12 +75,12 @@ class HrdDetailPage extends StatelessWidget {
               ),
             ),
           );
-          context.pop(true); // Kembali ke list dan refresh
+          context.pop(true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text('Gagal update status'),
-              duration: const Duration(seconds: 5),
+              duration: Duration(seconds: 5),
             ),
           );
         }
@@ -74,50 +90,74 @@ class HrdDetailPage extends StatelessWidget {
 
   Future<void> downloadPdf(BuildContext context) async {
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mengunduh PDF...')),
-      );
+      print('🔽 Starting PDF download for letter ID: ${surat['id']}');
+
+      // Show loading
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⏳ Mengunduh PDF...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
 
       final pdfBytes = await ApiService.downloadPdf(surat['id']);
 
-      if (pdfBytes != null && context.mounted) {
-        // Trigger browser download
-        final fileName = 'surat_${surat['id']}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      if (pdfBytes != null) {
+        print('✅ PDF bytes received: ${pdfBytes.length}');
+
+        final fileName = 'surat_${surat['name']}_${surat['id']}.pdf'
+            .replaceAll(' ', '_')
+            .toLowerCase();
         
-        // Create blob and download
+        print('💾 Saving as: $fileName');
+
+        // ✅ Create blob and download
         final blob = html.Blob([pdfBytes], 'application/pdf');
         final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.document.createElement('a') as html.AnchorElement
-          ..href = url
-          ..style.display = 'none'
-          ..download = fileName;
         
-        html.document.body?.append(anchor);
-        anchor.click();
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click();
+        
         html.Url.revokeObjectUrl(url);
-        anchor.remove();
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('✅ PDF berhasil diunduh: $fileName'),
+              backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
             ),
           );
-          print('✅ PDF downloaded: ${pdfBytes.length} bytes');
         }
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Gagal mengunduh PDF')),
-        );
+      } else {
+        print('❌ PDF bytes is null');
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Gagal mengunduh PDF. File mungkin belum tersedia.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Download error: $e');
+      print('Stack trace: $stackTrace');
+      
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Error: $e')),
+          SnackBar(
+            content: Text('❌ Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
-      print('Download error: $e');
     }
   }
 
@@ -153,7 +193,8 @@ class HrdDetailPage extends StatelessWidget {
                     _buildInfoRow('Jabatan', surat['jabatan'] ?? '-'),
                     _buildInfoRow('Departemen', surat['departemen'] ?? '-'),
                     _buildInfoRow('Jenis Surat', surat['letter_format']?['name'] ?? '-'),
-                    _buildInfoRow('Tanggal', formatDate(surat['tanggal'])),
+                    // ✅ FIX: Tampilkan periode, bukan tanggal tunggal
+                    _buildInfoRow('Periode', formatDateRange()),
                     _buildInfoRow('Status', status.toUpperCase()),
                   ],
                 ),

@@ -9,8 +9,6 @@ class Employee extends Model
 {
     use HasFactory;
 
-    protected $table = 'employees';
-
     protected $fillable = [
         'user_id',
         'position_id',
@@ -21,43 +19,33 @@ class Employee extends Model
         'address',
     ];
 
-    /*
-     * Relasi ke User
-     */
+    // ✅ Relasi ke User
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    /*
-     * Relasi ke Position
-     */
+    // ✅ Relasi ke Position
     public function position()
     {
-        return $this->belongsTo(Position::class);
+        return $this->belongsTo(Position::class, 'position_id');
     }
 
-    /*
-     * Relasi ke Department
-     */
+    // ✅ Relasi ke Department
     public function department()
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(Department::class, 'department_id');
     }
 
-    /*
-     * Relasi ke Letters (1 employee → banyak letters)
-     */
+    // ✅ Relasi ke Letters
     public function letters()
     {
-        return $this->hasMany(Letter::class);
+        return $this->hasMany(Letter::class, 'employee_id');
     }
 
-    /*
-     * Relasi ke CheckClocks
-     */
-    public function checkClocks()
+    // ✅ Accessor untuk nama lengkap
+    public function getFullNameAttribute()
     {
-        return $this->hasMany(CheckClock::class);
+        return $this->first_name . ' ' . $this->last_name;
     }
 }

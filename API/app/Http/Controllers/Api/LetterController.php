@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Letter;
-use App\Models\Employee;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
@@ -16,54 +15,16 @@ class LetterController extends Controller
     public function index()
     {
         try {
-            $letters = Letter::with(['letterFormat', 'employee.user', 'employee.department', 'employee.position'])
+            // ✅ Load with relations
+            $letters = Letter::with(['letterFormat', 'employee'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            return response()->json([
-                'success' => true,
-                'data' => $letters
-            ], 200);
+            // ✅ Return langsung array (biar simple dulu)
+            return response()->json($letters, 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
+            Log::error('LetterController index error: ' . $e->getMessage());
 
-    // POST create letter
-    public function store(Request $request)
-    {
-        try {
-            $request->validate([
-                'letter_format_id' => 'required|exists:letter_formats,id',
-                'name' => 'required|string|max:100',
-                'jabatan' => 'required|string|max:100',
-                'departemen' => 'required|string|max:100',
-                'tanggal' => 'required|date',
-            ]);
-
-            // Cari employee berdasarkan nama
-            $employee = Employee::whereRaw("CONCAT(first_name, ' ', last_name) = ?", [$request->name])
-                ->first();
-
-            $letter = Letter::create([
-                'letter_format_id' => $request->letter_format_id,
-                'employee_id' => $employee ? $employee->id : null, // Simpan employee_id
-                'name' => $request->name,
-                'jabatan' => $request->jabatan,
-                'departemen' => $request->departemen,
-                'tanggal' => $request->tanggal,
-                'status' => 'pending', // default
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Surat berhasil diajukan',
-                'data' => $letter->load('letterFormat')
-            ], 201);
-        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -76,44 +37,63 @@ class LetterController extends Controller
     {
         try {
             $letter = Letter::with(['letterFormat', 'employee'])->findOrFail($id);
-
-            return response()->json([
-                'success' => true,
-                'data' => $letter
-            ], 200);
+            return response()->json($letter, 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Letter tidak ditemukan'
+                'message' => 'Letter not found'
             ], 404);
         }
     }
 
-    // PUT update status (untuk HRD approve/reject)
+    // UPDATE status
     public function updateStatus(Request $request, $id)
     {
         try {
-            $letter = Letter::findOrFail($id);
-
             $request->validate([
-                'status' => 'required|in:approved,rejected',
+                'status' => 'required|in:pending,approved,rejected'
             ]);
 
-            $letter->update([
-                'status' => $request->status,
-            ]);
+            $letter = Letter::with(['letterFormat'])->findOrFail($id);
+            $letter->status = $request->status;
 
-            // Jika approve, generate PDF
-            if ($request->status === 'approved' && !$letter->pdf_path) {
-                $this->generatePdf($letter);
+            // ✅ Generate PDF saat approve (KEMBALIKAN SEPERTI KEMARIN)
+            if ($request->status === 'approved') {
+                $data = [
+                    'name' => $letter->name,
+                    'jabatan' => $letter->jabatan,
+                    'departemen' => $letter->departemen,
+                    'jenis_surat' => $letter->letterFormat->name,
+                    'tanggal_mulai' => $letter->tanggal_mulai,
+                    'tanggal_selesai' => $letter->tanggal_selesai,
+                ];
+
+                $pdf = Pdf::loadView('letters.template', $data);
+
+                // ✅ Format file name seperti kemarin: surat_{id}_{timestamp}.pdf
+                $fileName = 'surat_' . $letter->id . '_' . time() . '.pdf';
+
+                // ✅ FIX: Jangan pakai 'public/' di path, langsung nama file
+                // Storage akan otomatis save ke disk 'public'
+                $path = 'letters/' . $fileName;
+
+                // ✅ FIX: Explicitly gunakan disk 'public'
+                Storage::disk('public')->put($path, $pdf->output());
+
+                $letter->pdf_path = $path;
             }
 
+            $letter->save();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Status berhasil diupdate',
-                'data' => $letter->load('letterFormat')
+                'message' => 'Status updated successfully',
+                'data' => $letter
             ], 200);
+
         } catch (\Exception $e) {
+            Log::error('Update status error: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -121,93 +101,37 @@ class LetterController extends Controller
         }
     }
 
-    // Helper: Generate PDF dan simpan ke storage
-    private function generatePdf(Letter $letter)
-    {
-        try {
-            // Format tanggal ke bahasa Indonesia
-            $formattedDate = \Carbon\Carbon::parse($letter->tanggal)
-                ->locale('id')
-                ->translatedFormat('d F Y');
-
-            // Ganti placeholder di template content
-            $letterFormat = $letter->letterFormat;
-            $renderedContent = $letterFormat->content;
-            
-            // Ganti semua placeholder
-            $replacements = [
-                '{{tanggal}}' => $formattedDate,
-                '{{nama}}' => $letter->name,
-                '{{jabatan}}' => $letter->jabatan,
-                '{{departemen}}' => $letter->departemen,
-            ];
-            
-            $renderedContent = strtr($renderedContent, $replacements);
-            
-            // Update letterFormat->content dengan hasil penggantian
-            $letterFormat->content = $renderedContent;
-
-            // Gunakan dompdf untuk generate PDF di backend
-            $pdf = Pdf::loadView('letters.template', [
-                'letter' => $letter,
-                'letterFormat' => $letterFormat,
-            ]);
-
-            // Buat nama file
-            $filename = 'surat_' . $letter->id . '_' . now()->timestamp . '.pdf';
-            $path = 'letters/' . $filename;
-
-            // Simpan ke storage
-            Storage::disk('public')->put($path, $pdf->output());
-
-            // Update letter dengan path PDF
-            $letter->update(['pdf_path' => $path]);
-
-            return $path;
-        } catch (\Exception $e) {
-            Log::error('PDF Generation Error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    // DELETE letter
-    public function destroy($id)
-    {
-        try {
-            $letter = Letter::findOrFail($id);
-            $letter->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Letter berhasil dihapus'
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // GET download PDF
-    public function downloadPdf($id)
+    // ✅ FIX: Download dengan file_get_contents (sama seperti kode Rizky)
+    public function download($id)
     {
         try {
             $letter = Letter::findOrFail($id);
 
-            if (!$letter->pdf_path || !Storage::disk('public')->exists($letter->pdf_path)) {
+            if (!$letter->pdf_path) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'PDF tidak ditemukan'
+                    'message' => 'PDF not available'
                 ], 404);
             }
 
-            $filePath = Storage::disk('public')->path($letter->pdf_path);
-            return response()->download($filePath, 'surat_' . $letter->id . '.pdf');
+            // ✅ FIX: Ambil dari disk 'public'
+            $fullPath = storage_path('app/public/' . $letter->pdf_path);
+
+            if (!file_exists($fullPath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found: ' . $letter->pdf_path
+                ], 404);
+            }
+
+            return response()->file($fullPath);
+
         } catch (\Exception $e) {
+            Log::error('Download PDF error: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
     }

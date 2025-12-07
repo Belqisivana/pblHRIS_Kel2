@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../widgets/app_drawer.dart';
+import '../../../theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -9,118 +10,213 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Selamat Datang"),
+        title: const Text("Dashboard"),
       ),
       drawer: const AppDrawer(),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.mail_outline,
-                size: 100,
-                color: Colors.blue,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            
+            // Header Card
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              const SizedBox(height: 30),
-              const Text(
-                'Letter App',
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.dashboard,
+                    size: 80,
+                    color: AppTheme.primaryBlue,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Dashboard Aplikasi',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Pilih Modul yang Ingin Diakses',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.textGrey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // Section Title
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Modul Aplikasi',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: AppTheme.textDark,
                 ),
               ),
-              const SizedBox(height: 10),
-              const Text(
-                'Aplikasi Pembuatan Surat',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 50),
-              
-              // Tombol untuk KARYAWAN - Ajukan Surat
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => context.go('/form-surat'),
-                  icon: const Icon(Icons.edit_document),
-                  label: const Text('Ajukan Surat'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 15,
-                    ),
-                    textStyle: const TextStyle(fontSize: 16),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Module Cards
+            _buildModuleCard(
+              context,
+              icon: Icons.mail_outline,
+              title: 'Pengajuan Surat',
+              subtitle: 'Kelola pengajuan surat karyawan',
+              color: AppTheme.primaryBlue,
+              onTap: () => context.go('/letter-home'),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            _buildModuleCard(
+              context,
+              icon: Icons.attach_money,
+              title: 'Salary Report',
+              subtitle: 'Laporan gaji dan overtime',
+              color: AppTheme.secondaryGreen,
+              onTap: () {
+                // TODO: Navigate to Salary module
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Modul Salary belum tersedia'),
+                    backgroundColor: AppTheme.accentOrange,
                   ),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 16),
+            
+            _buildModuleCard(
+              context,
+              icon: Icons.calendar_today,
+              title: 'Absensi',
+              subtitle: 'Kelola kehadiran karyawan',
+              color: AppTheme.accentOrange,
+              onTap: () {
+                // TODO: Navigate to Attendance module
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Modul Absensi belum tersedia'),
+                    backgroundColor: AppTheme.accentOrange,
+                  ),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 16),
+            
+            _buildModuleCard(
+              context,
+              icon: Icons.people,
+              title: 'Karyawan',
+              subtitle: 'Manajemen data karyawan',
+              color: AppTheme.accentPurple,
+              onTap: () {
+                // TODO: Navigate to Employee module
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Modul Karyawan belum tersedia'),
+                    backgroundColor: AppTheme.accentOrange,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModuleCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              // Icon Circle
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 28,
                 ),
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(width: 16),
               
-              // Tombol untuk ADMIN - Kelola Template
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => context.go('/letters'),
-                  icon: const Icon(Icons.settings),
-                  label: const Text('Kelola Template Surat (Admin)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 15,
+              // Text
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textDark,
+                      ),
                     ),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textGrey,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               
-              const SizedBox(height: 16),
-              
-              // Tombol untuk HRD - Lihat Pengajuan
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => context.go('/hrd-list'),
-                  icon: const Icon(Icons.list_alt),
-                  label: const Text('Daftar Pengajuan (HRD)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 15,
-                    ),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Tombol untuk Laporan - Rekap Karyawan
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => context.push('/employee-recap'),
-                  icon: const Icon(Icons.assessment),
-                  label: const Text('Laporan Rekap Karyawan'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 15,
-                    ),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
-                ),
+              // Arrow
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Colors.grey.shade400,
               ),
             ],
           ),

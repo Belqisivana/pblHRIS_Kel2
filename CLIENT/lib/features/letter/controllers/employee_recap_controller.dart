@@ -8,15 +8,23 @@ class EmployeeRecapController extends ChangeNotifier {
   String? error;
 
   Future<void> fetchEmployeeRecap() async {
-    isLoading = true;
-    error = null;
-    notifyListeners();
     try {
+      print('🔄 Starting fetchEmployeeRecap...');
+      isLoading = true;
+      error = null;
+      notifyListeners();
+
       employees = await EmployeeRecapService.fetchEmployeeRecap();
+      
+      print('✅ Loaded ${employees.length} employees');
+      isLoading = false;
+      notifyListeners();
+      
     } catch (e) {
+      print('❌ Error in controller: $e');
       error = e.toString();
+      isLoading = false;
+      notifyListeners();
     }
-    isLoading = false;
-    notifyListeners();
   }
 }

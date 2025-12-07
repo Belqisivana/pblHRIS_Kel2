@@ -44,7 +44,9 @@ class EmployeeRecapDetailPage extends StatelessWidget {
                         radius: 40,
                         backgroundColor: Colors.white,
                         child: Text(
-                          employee.name.substring(0, 1).toUpperCase(),
+                          employee.name.isNotEmpty 
+                              ? employee.name.substring(0, 1).toUpperCase()
+                              : 'U',
                           style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -138,6 +140,12 @@ class EmployeeRecapDetailPage extends StatelessWidget {
                     ...employee.letters!.asMap().entries.map((entry) {
                       final index = entry.key;
                       final letter = entry.value;
+                      
+                      final letterName = letter['name'] ?? '-';
+                      final letterStatus = letter['status'] ?? 'pending';
+                      final letterDate = letter['createdAt'] ?? '-';
+                      final letterFormatName = letter['letterFormat']?['name'] ?? '-';
+                      
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         elevation: 2,
@@ -173,10 +181,19 @@ class EmployeeRecapDetailPage extends StatelessWidget {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          letter['name'] ?? '-',
+                                          letterName,
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          letterFormatName,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey.shade700,
+                                            fontStyle: FontStyle.italic,
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -185,7 +202,7 @@ class EmployeeRecapDetailPage extends StatelessWidget {
                                             Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade600),
                                             const SizedBox(width: 4),
                                             Text(
-                                              _formatDate(letter['created_at']),
+                                              _formatDate(letterDate),
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 color: Colors.grey.shade600,
@@ -202,15 +219,15 @@ class EmployeeRecapDetailPage extends StatelessWidget {
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: _getStatusColor(letter['status']),
+                                      color: _getStatusColor(letterStatus),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      _getStatusLabel(letter['status']),
+                                      _getStatusLabel(letterStatus),
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color: _getStatusTextColor(letter['status']),
+                                        color: _getStatusTextColor(letterStatus),
                                       ),
                                     ),
                                   ),
@@ -280,21 +297,18 @@ class EmployeeRecapDetailPage extends StatelessWidget {
     );
   }
 
-  String _formatDate(dynamic date) {
-    if (date == null) return '-';
+  String _formatDate(String dateStr) {
+    if (dateStr == '-') return '-';
     try {
-      if (date is String) {
-        final parsedDate = DateTime.parse(date);
-        return DateFormat('dd MMM yyyy').format(parsedDate);
-      }
-      return date.toString();
+      final date = DateTime.parse(dateStr.replaceAll(' ', 'T'));
+      return DateFormat('dd MMM yyyy HH:mm', 'id_ID').format(date);
     } catch (e) {
-      return date.toString();
+      return dateStr;
     }
   }
 
   String _getStatusLabel(String status) {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'approved':
         return 'Disetujui';
       case 'rejected':
@@ -307,7 +321,7 @@ class EmployeeRecapDetailPage extends StatelessWidget {
   }
 
   Color _getStatusColor(String status) {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'approved':
         return Colors.green.shade100;
       case 'rejected':
@@ -320,7 +334,7 @@ class EmployeeRecapDetailPage extends StatelessWidget {
   }
 
   Color _getStatusTextColor(String status) {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'approved':
         return Colors.green.shade700;
       case 'rejected':
@@ -333,12 +347,21 @@ class EmployeeRecapDetailPage extends StatelessWidget {
   }
 
   void _downloadPdf(BuildContext context) async {
-    final url = 'http://localhost:8000/api/employee-recap/download-pdf?user_id=${employee.id}';
+    final url = 'http://127.0.0.1:8000/api/employee-recap/pdf?user_id=${employee.id}';
     
     try {
       final uri = Uri.parse(url);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Download PDF berhasil!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

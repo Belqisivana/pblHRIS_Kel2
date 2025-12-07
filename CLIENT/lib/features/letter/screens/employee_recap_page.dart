@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../controllers/employee_recap_controller.dart';
 import 'employee_recap_detail_page.dart';
@@ -22,94 +23,180 @@ class _EmployeeRecapPageState extends State<EmployeeRecapPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => EmployeeRecapController()..fetchEmployeeRecap(),
-      child: Consumer<EmployeeRecapController>(
-        builder: (context, controller, _) {
-          if (controller.isLoading) {
-            return Scaffold(
-              appBar: AppBar(title: const Text('Laporan Rekap Karyawan')),
-              body: const Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (controller.error != null) {
-            return Scaffold(
-              appBar: AppBar(title: const Text('Laporan Rekap Karyawan')),
-              body: Center(child: Text('Error: ${controller.error}')),
-            );
-          }
-
-          // Filter hanya karyawan yang memiliki pengajuan surat
-          var employeesWithLetters = controller.employees
-              .where((emp) => emp.letters != null && emp.letters!.isNotEmpty)
-              .toList();
-
-          // Filter berdasarkan search query
-          if (searchQuery.isNotEmpty) {
-            employeesWithLetters = employeesWithLetters
-                .where((emp) =>
-                    emp.name.toLowerCase().contains(searchQuery.toLowerCase()))
-                .toList();
-          }
-
-          return Scaffold(
-            appBar: AppBar(title: const Text('Laporan Rekap Karyawan')),
-            body: Column(
-              children: [
-                // Search Bar
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: TextField(
-                    controller: searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Cari nama karyawan...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                searchController.clear();
-                                setState(() => searchQuery = '');
-                              },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    onChanged: (value) {
-                      setState(() => searchQuery = value);
-                    },
+    // ✅ Wrap dengan error boundary
+    return SafeArea(
+      child: ChangeNotifierProvider(
+        create: (_) {
+          print('🔄 Creating EmployeeRecapController');
+          final controller = EmployeeRecapController();
+          controller.fetchEmployeeRecap().catchError((error) {
+            print('❌ Error in fetchEmployeeRecap: $error');
+          });
+          return controller;
+        },
+        child: Consumer<EmployeeRecapController>(
+          builder: (context, controller, _) {
+            print('🔍 Building with state: loading=${controller.isLoading}, error=${controller.error}');
+            
+            if (controller.isLoading) {
+              return Scaffold(
+                appBar: AppBar(
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go('/letter-home'),
+                  ),
+                  title: const Text('Laporan Rekap Karyawan'),
+                ),
+                body: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Memuat data...'),
+                    ],
                   ),
                 ),
-                // List Results
-                Expanded(
-                  child: employeesWithLetters.isEmpty
-                      ? Center(
-                          child: Text(
-                            searchQuery.isNotEmpty
-                                ? 'Tidak ada karyawan dengan nama "$searchQuery"'
-                                : 'Tidak ada pengajuan surat',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: employeesWithLetters.length,
-                          padding: const EdgeInsets.all(8),
-                          itemBuilder: (context, index) {
-                            final emp = employeesWithLetters[index];
-                            return EmployeeListItem(employee: emp);
-                          },
-                        ),
+              );
+            }
+            
+            if (controller.error != null) {
+              return Scaffold(
+                appBar: AppBar(
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go('/letter-home'),
+                  ),
+                  title: const Text('Laporan Rekap Karyawan'),
                 ),
-              ],
-            ),
-          );
-        },
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Terjadi Kesalahan',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          controller.error ?? 'Unknown error',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () => controller.fetchEmployeeRecap(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Coba Lagi'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            // Filter hanya karyawan yang memiliki pengajuan surat
+            var employeesWithLetters = controller.employees
+                .where((emp) => emp.letters != null && emp.letters!.isNotEmpty)
+                .toList();
+
+            // Filter berdasarkan search query
+            if (searchQuery.isNotEmpty) {
+              employeesWithLetters = employeesWithLetters
+                  .where((emp) =>
+                      emp.name.toLowerCase().contains(searchQuery.toLowerCase()))
+                  .toList();
+            }
+
+            return Scaffold(
+              appBar: AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => context.go('/letter-home'),
+                ),
+                title: const Text('Laporan Rekap Karyawan'),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => controller.fetchEmployeeRecap(),
+                  ),
+                ],
+              ),
+              body: Column(
+                children: [
+                  // Search Bar
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Cari nama karyawan...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  searchController.clear();
+                                  setState(() => searchQuery = '');
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() => searchQuery = value);
+                      },
+                    ),
+                  ),
+                  // List Results
+                  Expanded(
+                    child: employeesWithLetters.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.inbox, size: 64, color: Colors.grey),
+                                const SizedBox(height: 16),
+                                Text(
+                                  searchQuery.isNotEmpty
+                                      ? 'Tidak ada karyawan dengan nama "$searchQuery"'
+                                      : 'Belum ada pengajuan surat dari karyawan',
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: () => controller.fetchEmployeeRecap(),
+                            child: ListView.builder(
+                              itemCount: employeesWithLetters.length,
+                              padding: const EdgeInsets.all(8),
+                              itemBuilder: (context, index) {
+                                final emp = employeesWithLetters[index];
+                                return EmployeeListItem(employee: emp);
+                              },
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -136,7 +223,7 @@ class _EmployeeListItemState extends State<EmployeeListItem> {
           ListTile(
             leading: const Icon(Icons.person, color: Colors.blue),
             title: Text(
-              widget.employee.name,
+              widget.employee.name ?? 'Unknown',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -146,18 +233,26 @@ class _EmployeeListItemState extends State<EmployeeListItem> {
               '${widget.employee.letters?.length ?? 0} pengajuan surat',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
-            trailing: Icon(
-              isExpanded ? Icons.expand_less : Icons.expand_more,
-              color: Colors.blue,
+            trailing: IconButton(
+              icon: Icon(
+                isExpanded ? Icons.expand_less : Icons.expand_more,
+                color: Colors.blue,
+              ),
+              onPressed: () {
+                setState(() => isExpanded = !isExpanded);
+              },
             ),
             onTap: () {
-              // Navigate to detail page
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EmployeeRecapDetailPage(employee: widget.employee),
-                ),
-              );
+              try {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EmployeeRecapDetailPage(employee: widget.employee),
+                  ),
+                );
+              } catch (e) {
+                print('❌ Error navigating to detail: $e');
+              }
             },
           ),
           if (isExpanded)

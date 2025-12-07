@@ -39,30 +39,31 @@ class _FormSuratPageState extends State<FormSuratPage> {
     setState(() => isLoading = true);
 
     try {
-      final profile = await ApiService.fetchProfile();
+      final response = await ApiService.fetchProfile();
 
-      print("PROFILE RESPONSE => $profile");
+      print("PROFILE RESPONSE => $response");
 
-      if (profile == null || profile is! Map) {
+      if (response == null || response is! Map) {
         throw "Response profile tidak valid";
       }
 
-      // AMBIL EMPLOYEE
-      final data = profile['employee'] ?? profile;
+      // ✅ FIX: Ambil dari key 'employee'
+      final employee = response['employee'];
 
-      if (data == null) {
+      if (employee == null) {
         throw "Data employee tidak ditemukan";
       }
 
       // Simpan ID
-      employeeId = data['id'];
-      positionId = data['position_id'];
-      departmentId = data['department_id'];
+      employeeId = employee['id'];
+      positionId = employee['position_id'];
+      departmentId = employee['department_id'];
 
       // Autofill input
-      namaController.text = "${data['first_name'] ?? ''} ${data['last_name'] ?? ''}".trim();
-      jabatanController.text = data['position']?['name'] ?? '';
-      departemenController.text = data['department']?['name'] ?? '';
+      namaController.text = 
+        "${employee['first_name'] ?? ''} ${employee['last_name'] ?? ''}".trim();
+      jabatanController.text = employee['position']?['name'] ?? '';
+      departemenController.text = employee['department']?['name'] ?? '';
 
       // Load template surat
       templateList = await letterController.fetchLetterFormats();
@@ -114,7 +115,7 @@ class _FormSuratPageState extends State<FormSuratPage> {
   }
 
   Future<void> submitSurat() async {
-    // ✅ FIX: Validasi lengkap
+    // ✅ Validasi lengkap
     if (selectedTemplate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih jenis surat terlebih dahulu!')),
@@ -129,15 +130,11 @@ class _FormSuratPageState extends State<FormSuratPage> {
       return;
     }
 
-    // ✅ FIX: Sesuaikan data dengan backend
+    // ✅ FIX: Sesuaikan dengan validasi backend
     final data = {
       'letter_format_id': selectedTemplate!.id,
-      'name': namaController.text,
-      'jabatan': jabatanController.text,
-      'departemen': departemenController.text,
-      'tanggal': tanggalMulai!.toIso8601String().split('T')[0],
-      // Kirim juga employee_id jika backend support
-      if (employeeId != null) 'employee_id': employeeId,
+      'tanggal_mulai': tanggalMulai!.toIso8601String().split('T')[0],    // YYYY-MM-DD
+      'tanggal_selesai': tanggalSelesai!.toIso8601String().split('T')[0], // YYYY-MM-DD
     };
 
     print('📤 Submitting letter data: $data');
@@ -156,7 +153,6 @@ class _FormSuratPageState extends State<FormSuratPage> {
         // Kembali ke home
         context.go('/');
       } else {
-        // ✅ FIX: Hapus reference ke 'result' yang tidak ada
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -217,7 +213,7 @@ class _FormSuratPageState extends State<FormSuratPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   IconButton(
-                    onPressed: () => context.pop(),
+                    onPressed: () => context.go('/letter-home'),
                     icon: const Icon(
                       Icons.arrow_back,
                       color: Color(0xff1e6ab3),

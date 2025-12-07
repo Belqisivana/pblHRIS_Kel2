@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/letter_controller.dart';
 import '../models/letter_format.dart';
 
@@ -33,7 +34,7 @@ class _LettersListScreenState extends State<LettersListScreen> {
           SnackBar(content: Text('Error: $e')),
         );
       }
-      formats = []; // Set empty list jika error
+      formats = [];
     }
     setState(() => isLoading = false);
   }
@@ -89,9 +90,12 @@ class _LettersListScreenState extends State<LettersListScreen> {
         await controller.deleteLetterFormat(format.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Template "${format.name}" berhasil dihapus')),
+            const SnackBar(
+              content: Text('Template berhasil dihapus'),
+              backgroundColor: AppTheme.secondaryGreen,
+            ),
           );
-          loadData(); // Reload list
+          loadData();
         }
       } catch (e) {
         if (mounted) {
@@ -109,7 +113,7 @@ class _LettersListScreenState extends State<LettersListScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
+          onPressed: () => context.go('/letter-home'),
         ),
         title: const Text("Kelola Template Surat"),
         actions: [
@@ -126,46 +130,75 @@ class _LettersListScreenState extends State<LettersListScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.description_outlined, size: 64, color: Colors.grey),
+                      Icon(
+                        Icons.description_outlined,
+                        size: 64,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(height: 16),
-                      const Text("Belum ada template surat"),
+                      const Text(
+                        "Belum ada template surat",
+                        style: TextStyle(color: AppTheme.textGrey),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () => context.push('/letter/template/create'),
                         icon: const Icon(Icons.add),
                         label: const Text('Buat Template Baru'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlue,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ],
                   ),
                 )
               : ListView.builder(
+                  padding: const EdgeInsets.all(16),
                   itemCount: formats.length,
                   itemBuilder: (_, i) {
                     final item = formats[i];
                     return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
+                      margin: const EdgeInsets.only(bottom: 12),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.blue.shade100,
-                          child: Text(
-                            item.name.substring(0, 1).toUpperCase(),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
+                        contentPadding: const EdgeInsets.all(16),
+                        leading: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryBlue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              item.name.substring(0, 1).toUpperCase(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                color: AppTheme.primaryBlue,
+                              ),
                             ),
                           ),
                         ),
                         title: Text(
                           item.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: AppTheme.textDark,
+                          ),
                         ),
-                        subtitle: Text(
-                          item.content,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            item.content,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppTheme.textGrey,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
                         trailing: PopupMenuButton(
                           itemBuilder: (context) => [
@@ -173,7 +206,7 @@ class _LettersListScreenState extends State<LettersListScreen> {
                               value: 'edit',
                               child: Row(
                                 children: [
-                                  Icon(Icons.edit, size: 20),
+                                  Icon(Icons.edit, size: 20, color: AppTheme.primaryBlue),
                                   SizedBox(width: 8),
                                   Text('Edit'),
                                 ],
@@ -206,8 +239,10 @@ class _LettersListScreenState extends State<LettersListScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await context.push('/letter/template/create');
-          if (result == true) loadData(); // Reload jika sukses
+          if (result == true) loadData();
         },
+        backgroundColor: AppTheme.primaryBlue,
+        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Buat Template'),
       ),

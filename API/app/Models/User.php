@@ -9,14 +9,12 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
-    use HasApiTokens, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     protected $fillable = [
-        'name',
         'email',
         'password',
-        'is_admin', // TAMBAHKAN
+        'is_admin',
     ];
 
     protected $hidden = [
@@ -29,13 +27,26 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'is_admin' => 'boolean', // TAMBAHKAN
+            'is_admin' => 'boolean',
         ];
     }
 
-    // TAMBAHKAN RELASI
+    // ✅ Relasi ke Employee (1 user punya 1 employee)
     public function employee()
     {
         return $this->hasOne(Employee::class, 'user_id');
+    }
+
+    // ✅ Relasi ke Letters melalui Employee
+    public function letters()
+    {
+        return $this->hasManyThrough(
+            Letter::class,      // Model tujuan
+            Employee::class,    // Model perantara
+            'user_id',          // FK di table employees
+            'employee_id',      // FK di table letters
+            'id',               // PK di table users
+            'id'                // PK di table employees
+        );
     }
 }

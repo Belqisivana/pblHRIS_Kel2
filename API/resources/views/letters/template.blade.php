@@ -1,89 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Surat {{ $letter->letterFormat->name ?? 'Pengajuan' }}</title>
+    <meta charset="utf-8">
+    <title>{{ $jenis_surat }}</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
             line-height: 1.6;
+            margin: 40px;
         }
         .header {
-            text-align: center;
-            margin-bottom: 40px;
+            text-align: right;
+            margin-bottom: 30px;
         }
         .content {
             text-align: justify;
         }
-        .signature-section {
-            margin-top: 60px;
+        .signature {
+            margin-top: 50px;
             text-align: right;
         }
-        .info-row {
-            margin-bottom: 10px;
+        .employee-info {
+            margin: 20px 0;
         }
-        .label {
-            font-weight: bold;
-            display: inline-block;
-            width: 120px;
+        .employee-info table {
+            margin-left: 40px;
+        }
+        .employee-info td {
+            padding: 3px 0;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2>SURAT {{ strtoupper($letter->letterFormat->name ?? 'PENGAJUAN') }}</h2>
+        <p>Malang, {{ date('d F Y') }}</p>
     </div>
 
-    <div style="text-align: right; margin-bottom: 30px;">
-        <p>Malang, {{ \Carbon\Carbon::parse($letter->tanggal)->locale('id')->isoFormat('DD MMMM YYYY') }}</p>
-    </div>
+    <div class="content">
+        <p><strong>Perihal: {{ $jenis_surat }}</strong></p>
 
-    <div style="margin-bottom: 30px;">
-        <p><strong>Perihal:</strong> Surat {{ $letter->letterFormat->name ?? 'Pengajuan' }}</p>
-    </div>
+        <p style="margin-top: 20px;">
+            Yth. HRD Perusahaan<br>
+            Di tempat
+        </p>
 
-    <div style="margin-bottom: 30px;">
-        <p>Yth. HRD Perusahaan HRIS<br>di tempat</p>
-    </div>
+        <p style="margin-top: 20px;">Dengan hormat,</p>
 
-    <div style="margin-bottom: 20px;">
-        <p>Dengan hormat,</p>
         <p>Saya yang bertanda tangan di bawah ini:</p>
-    </div>
 
-    <div style="margin-bottom: 30px;">
-        <div class="info-row">
-            <span class="label">Nama</span>
-            <span>: {{ $letter->name }}</span>
+        <div class="employee-info">
+            <table>
+                <tr>
+                    <td width="120">Nama</td>
+                    <td width="20">:</td>
+                    <td>{{ $name }}</td>
+                </tr>
+                <tr>
+                    <td>Jabatan</td>
+                    <td>:</td>
+                    <td>{{ $jabatan }}</td>
+                </tr>
+                <tr>
+                    <td>Departemen</td>
+                    <td>:</td>
+                    <td>{{ $departemen }}</td>
+                </tr>
+            </table>
         </div>
-        <div class="info-row">
-            <span class="label">Jabatan</span>
-            <span>: {{ $letter->jabatan }}</span>
-        </div>
-        <div class="info-row">
-            <span class="label">Departemen</span>
-            <span>: {{ $letter->departemen }}</span>
-        </div>
+
+        <p>
+            Dengan ini mengajukan permohonan {{ strtolower($jenis_surat) }}
+            terhitung dari tanggal
+            <strong>{{ date('d F Y', strtotime($tanggal_mulai)) }}</strong>
+            sampai dengan
+            <strong>{{ date('d F Y', strtotime($tanggal_selesai)) }}</strong>.
+        </p>
+
+        <p>
+            Demikian surat permohonan ini saya buat dengan sebenarnya.
+            Atas perhatian dan persetujuannya, saya ucapkan terima kasih.
+        </p>
     </div>
 
-    <div class="content" style="margin-bottom: 30px;">
-        <p>{{ $letter->letterFormat->content ?? 'Bermaksud mengajukan surat pengajuan.' }}</p>
-    </div>
-
-    <div class="content" style="margin-bottom: 40px;">
-        <p>Demikian surat {{ strtolower($letter->letterFormat->name ?? 'pengajuan') }} ini saya ajukan. 
-        Atas perhatiannya, saya ucapkan terima kasih.</p>
-    </div>
-
-    <div class="signature-section">
+    <div class="signature">
         <p>Hormat saya,</p>
-        <div style="height: 60px;"></div>
-        <p>{{ $letter->name }}</p>
-    </div>
-
-    <div style="margin-top: 80px; padding-top: 20px; border-top: 1px solid #ccc; font-size: 10px; text-align: center;">
-        <p>Dokumen ini dihasilkan secara otomatis oleh Sistem HRIS</p>
+        <br><br><br>
+        <p><strong>{{ $name }}</strong></p>
     </div>
 </body>
 </html>

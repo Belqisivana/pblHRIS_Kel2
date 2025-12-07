@@ -34,7 +34,7 @@ class Letter extends Model
     /*
      * Relasi ke LetterFormat
      */
-    public function format()
+    public function letterFormat()
     {
         return $this->belongsTo(LetterFormat::class, 'letter_format_id');
     }

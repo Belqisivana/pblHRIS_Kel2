@@ -7,23 +7,14 @@ class ApiService {
   static const String baseURL = "http://127.0.0.1:8000/api";
 
   // ============================
-  // TOKEN
+  // TOKEN MANAGEMENT
   // ============================
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('token');
   }
-  //(DENGAN FITUR LOGIN YANG MENYIMPAN TOKEN)
-  // static Future<Map<String, String>> _headersWithToken() async {
-  //   final token = await _getToken();
 
-  //   return {
-  //     'Accept': 'application/json',
-  //     'Content-Type': 'application/json',
-  //     if (token != null) 'Authorization': 'Bearer $token',
-  //   };
-  // }
-  //(INI BUAT TESTING TANPA LOGIN)
+  // ✅ UNTUK DEVELOPMENT (TANPA LOGIN - PAKAI TOKEN DARI TINKER)
   static Future<Map<String, String>> _headersWithToken() async {
     const token = "1|9nTtLsxWZZw7kplxnriTdw8lesXM235GZ8Jnhabe46efaa6a";
 
@@ -34,8 +25,65 @@ class ApiService {
     };
   }
 
+  // ✅ UNTUK PRODUCTION (DENGAN FITUR LOGIN)
+  // Uncomment ini saat sudah ada fitur login
+  // static Future<Map<String, String>> _headersWithToken() async {
+  //   final token = await _getToken();
+  //
+  //   return {
+  //     'Accept': 'application/json',
+  //     'Content-Type': 'application/json',
+  //     if (token != null) 'Authorization': 'Bearer $token',
+  //   };
+  // }
+
   // ============================
-  // GET PROFILE (employeeinfo)
+  // LOGIN (Untuk nanti jika sudah ada fitur login)
+  // ============================
+  // static Future<bool> login(String email, String password) async {
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse('$baseURL/login'),
+  //       headers: {
+  //         'Accept': 'application/json',
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: jsonEncode({
+  //         'email': email,
+  //         'password': password,
+  //       }),
+  //     );
+  //
+  //     print("Login Status: ${response.statusCode}");
+  //     print("Login Body: ${response.body}");
+  //
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //       final token = data['token'];
+  //
+  //       // Simpan token ke SharedPreferences
+  //       final prefs = await SharedPreferences.getInstance();
+  //       await prefs.setString('token', token);
+  //
+  //       return true;
+  //     }
+  //     return false;
+  //   } catch (e) {
+  //     print("Login Exception: $e");
+  //     return false;
+  //   }
+  // }
+
+  // ============================
+  // LOGOUT
+  // ============================
+  // static Future<void> logout() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.remove('token');
+  // }
+
+  // ============================
+  // GET PROFILE (employeeInfo) - DARI LetterSubmissionController
   // ============================
   static Future<Map<String, dynamic>?> fetchProfile() async {
     try {
@@ -48,7 +96,19 @@ class ApiService {
       print("Profile Body: ${response.body}");
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+        
+        // ✅ FIX: Cast data ke Map<String, dynamic>
+        if (data is Map<String, dynamic> && data.containsKey('employee')) {
+          return data; // Return full response
+        }
+        
+        // ✅ FIX: Return as Map atau null jika bukan Map
+        if (data is Map<String, dynamic>) {
+          return data;
+        }
+        
+        return null; // ✅ Return null jika data bukan Map
       }
       return null;
     } catch (e) {
@@ -58,14 +118,23 @@ class ApiService {
   }
 
   // ============================
-  // CREATE SURAT (PENGAJUAN SURAT)
+  // CREATE PENGAJUAN SURAT - DARI LetterSubmissionController
   // ============================
   static Future<bool> createPengajuanSurat(Map<String, dynamic> data) async {
     try {
+      // ✅ FIX: Sesuaikan field dengan backend
+      final payload = {
+        'letter_format_id': data['letter_format_id'],
+        'tanggal_mulai': data['tanggal_mulai'],   // ✅ UBAH dari 'tanggal'
+        'tanggal_selesai': data['tanggal_selesai'], // ✅ TAMBAH field baru
+      };
+
+      print('📤 Submitting letter data: $payload');
+
       final response = await http.post(
-        Uri.parse('$baseURL/letters/submit'),
+        Uri.parse('$baseURL/letters/submit'), // ✅ Endpoint sudah benar
         headers: await _headersWithToken(),
-        body: jsonEncode(data),
+        body: jsonEncode(payload),
       );
 
       print("Submit Letter Status: ${response.statusCode}");
@@ -79,58 +148,53 @@ class ApiService {
   }
 
   // ============================
-  // CREATE SURAT (DARI VERSI LAMA)
-  // ============================
-  // static Future<bool> createSurat(Map data) async {
-  //   try {
-  //     final res = await http.post(
-  //       Uri.parse("$baseURL/letters"),
-  //       headers: await _headersWithToken(),
-  //       body: jsonEncode(data),
-  //     );
-
-  //     print('Create Letter Status: ${res.statusCode}');
-  //     print('Create Letter Response: ${res.body}');
-
-  //     return res.statusCode == 200 || res.statusCode == 201;
-  //   } catch (e) {
-  //     print('Create Letter Exception: $e');
-  //     return false;
-  //   }
-  // }
-
-  // ============================
-  // GET LIST SURAT
+  // GET LIST SURAT - UNTUK HRD (dari LetterController)
   // ============================
   static Future<List> getSurat() async {
     try {
+      print('🔍 Fetching: $baseURL/letters');
+      
       final res = await http.get(
         Uri.parse("$baseURL/letters"),
-        headers: await _headersWithToken(),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
       );
 
-      print("Get Letters Status: ${res.statusCode}");
+      print('📥 Status: ${res.statusCode}');
+      print('📥 Body: ${res.body}');
 
       if (res.statusCode == 200) {
         final decode = jsonDecode(res.body);
-
-        if (decode is Map && decode.containsKey('data')) {
-          return decode['data'];
-        }
-
+        
+        // Response langsung array dari LetterController
         if (decode is List) {
+          print('✅ Found ${decode.length} letters');
           return decode;
         }
+        
+        // Jika wrapped dalam object
+        if (decode is Map) {
+          if (decode.containsKey('data') && decode['data'] is List) {
+            print('✅ Found ${decode['data'].length} letters (wrapped)');
+            return decode['data'];
+          }
+          // Single item in array
+          return [decode];
+        }
       }
+      
+      print('⚠️ No data or error ${res.statusCode}');
       return [];
     } catch (e) {
-      print('Get Letters Exception: $e');
+      print('❌ Exception: $e');
       return [];
     }
   }
 
   // ============================
-  // UPDATE STATUS SURAT
+  // UPDATE STATUS SURAT - UNTUK HRD (dari LetterController)
   // ============================
   static Future<bool> updateStatus(dynamic id, String status) async {
     try {
@@ -152,23 +216,48 @@ class ApiService {
     }
   }
 
+  // ============================
+  // DOWNLOAD PDF
+  // ============================
   static Future<Uint8List?> downloadPdf(dynamic id) async {
     try {
-      print('Downloading PDF for letter $id');
+      print('🔽 Downloading PDF for letter $id');
+
+      final url = Uri.parse("$baseURL/letters/$id/download");
+      print('📡 URL: $url');
 
       final res = await http.get(
-        Uri.parse("$baseURL/letters/$id/download"),
+        url,
+        headers: {
+          'Accept': 'application/pdf',  // ✅ FIX: Accept PDF
+          'Content-Type': 'application/json',
+        },
       );
 
+      print('📥 PDF Download Status: ${res.statusCode}');
+      print('📥 Content-Type: ${res.headers['content-type']}');
+      print('📥 Content-Length: ${res.headers['content-length']}');
+
       if (res.statusCode == 200) {
-        print('PDF download successful');
-        return res.bodyBytes;
+        // ✅ Cek apakah response adalah PDF
+        final contentType = res.headers['content-type'];
+        
+        if (contentType != null && contentType.contains('application/pdf')) {
+          print('✅ PDF download successful, size: ${res.bodyBytes.length} bytes');
+          return res.bodyBytes;
+        } else {
+          print('❌ Response is not PDF: $contentType');
+          print('Response body: ${res.body}');
+          return null;
+        }
       } else {
-        print('PDF download failed: ${res.statusCode}');
+        print('❌ PDF download failed with status ${res.statusCode}');
+        print('Response: ${res.body}');
         return null;
       }
-    } catch (e) {
-      print('Download PDF Exception: $e');
+    } catch (e, stackTrace) {
+      print('❌ Download PDF Exception: $e');
+      print('Stack trace: $stackTrace');
       return null;
     }
   }
