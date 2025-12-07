@@ -1,52 +1,115 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Choose appropriate base URL depending on platform/environment.
-  static String get baseURL {
-    if (kIsWeb) return "http://127.0.0.1:8000/api";
-    try {
-      if (Platform.isAndroid) return "http://10.0.2.2:8000/api";
-      if (Platform.isIOS) return "http://127.0.0.1:8000/api";
-    } catch (_) {}
-    return "http://127.0.0.1:8000/api";
+  static const String baseURL = "http://127.0.0.1:8000/api";
+
+  // ============================
+  // TOKEN
+  // ============================
+  static Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
+  //(DENGAN FITUR LOGIN YANG MENYIMPAN TOKEN)
+  // static Future<Map<String, String>> _headersWithToken() async {
+  //   final token = await _getToken();
+
+  //   return {
+  //     'Accept': 'application/json',
+  //     'Content-Type': 'application/json',
+  //     if (token != null) 'Authorization': 'Bearer $token',
+  //   };
+  // }
+  //(INI BUAT TESTING TANPA LOGIN)
+  static Future<Map<String, String>> _headersWithToken() async {
+    const token = "1|9nTtLsxWZZw7kplxnriTdw8lesXM235GZ8Jnhabe46efaa6a";
+
+    return {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    };
   }
 
-  static Future<Map<String, dynamic>> createSurat(Map data) async {
+  // ============================
+  // GET PROFILE (employeeinfo)
+  // ============================
+  static Future<Map<String, dynamic>?> fetchProfile() async {
     try {
-      print('Sending request to: $baseURL/letters');
-      print('Request body: ${jsonEncode(data)}');
-
-      final res = await http.post(
-        Uri.parse("$baseURL/letters"),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data),
+      final response = await http.get(
+        Uri.parse('$baseURL/letter/employee'),
+        headers: await _headersWithToken(),
       );
 
-      print('Create Letter Status: ${res.statusCode}');
-      print('Create Letter Response: ${res.body}');
+      print("Profile Status: ${response.statusCode}");
+      print("Profile Body: ${response.body}");
 
-      return {
-        'success': res.statusCode == 200 || res.statusCode == 201,
-        'statusCode': res.statusCode,
-        'body': res.body,
-      };
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
     } catch (e) {
-      print('Create Letter Exception: $e');
-      return {
-        'success': false,
-        'statusCode': -1,
-        'body': 'Exception: $e',
-      };
+      print("Profile Exception: $e");
+      return null;
     }
   }
 
+  // ============================
+  // CREATE SURAT (PENGAJUAN SURAT)
+  // ============================
+  static Future<bool> createPengajuanSurat(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseURL/letters/submit'),
+        headers: await _headersWithToken(),
+        body: jsonEncode(data),
+      );
+
+      print("Submit Letter Status: ${response.statusCode}");
+      print("Submit Letter Body: ${response.body}");
+
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print("Submit Letter Exception: $e");
+      return false;
+    }
+  }
+
+  // ============================
+  // CREATE SURAT (DARI VERSI LAMA)
+  // ============================
+  // static Future<bool> createSurat(Map data) async {
+  //   try {
+  //     final res = await http.post(
+  //       Uri.parse("$baseURL/letters"),
+  //       headers: await _headersWithToken(),
+  //       body: jsonEncode(data),
+  //     );
+
+  //     print('Create Letter Status: ${res.statusCode}');
+  //     print('Create Letter Response: ${res.body}');
+
+  //     return res.statusCode == 200 || res.statusCode == 201;
+  //   } catch (e) {
+  //     print('Create Letter Exception: $e');
+  //     return false;
+  //   }
+  // }
+
+  // ============================
+  // GET LIST SURAT
+  // ============================
   static Future<List> getSurat() async {
     try {
-      final res = await http.get(Uri.parse("$baseURL/letters"));
+      final res = await http.get(
+        Uri.parse("$baseURL/letters"),
+        headers: await _headersWithToken(),
+      );
+
+      print("Get Letters Status: ${res.statusCode}");
 
       if (res.statusCode == 200) {
         final decode = jsonDecode(res.body);
@@ -66,32 +129,26 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> updateStatus(
-      dynamic id, String status) async {
+  // ============================
+  // UPDATE STATUS SURAT
+  // ============================
+  static Future<bool> updateStatus(dynamic id, String status) async {
     try {
       print('Updating status for letter $id to $status');
 
       final res = await http.put(
         Uri.parse("$baseURL/letters/$id/status"),
-        headers: {'Content-Type': 'application/json'},
+        headers: await _headersWithToken(),
         body: jsonEncode({"status": status}),
       );
 
       print('Update Status: ${res.statusCode}');
       print('Update Response: ${res.body}');
 
-      return {
-        'success': res.statusCode == 200,
-        'statusCode': res.statusCode,
-        'body': res.body,
-      };
+      return res.statusCode == 200;
     } catch (e) {
       print('Update Status Exception: $e');
-      return {
-        'success': false,
-        'statusCode': -1,
-        'body': 'Exception: $e',
-      };
+      return false;
     }
   }
 

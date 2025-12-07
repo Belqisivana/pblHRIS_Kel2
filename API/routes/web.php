@@ -7,5 +7,3 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-
-Route::get('/letters/{id}/pdf', [LetterController::class, 'generatePdf']);

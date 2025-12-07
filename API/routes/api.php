@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\LetterFormatController;
 use App\Http\Controllers\Api\LetterController;
-use App\Http\Controllers\Api\EmployeeRecapController;
+use App\Http\Controllers\Api\LetterSubmissionController;
 
 // Letter Formats (Template)
 Route::get('/letter-formats', [LetterFormatController::class, 'index']);
@@ -18,8 +18,9 @@ Route::get('/letters/{id}', [LetterController::class, 'show']);
 Route::put('/letters/{id}/status', [LetterController::class, 'updateStatus']);
 Route::delete('/letters/{id}', [LetterController::class, 'destroy']);
 
-// Laporan Rekap Karyawan
-Route::get('/employee-recap', [EmployeeRecapController::class, 'index']);
-Route::get('/employee-recap/download', [EmployeeRecapController::class, 'download']);
-Route::get('/employee-recap/download-pdf', [EmployeeRecapController::class, 'downloadPdf']);
-Route::get('/letters/{id}/download', [LetterController::class, 'downloadPdf']);
+// (pengajuan surat)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/letter/employee', [LetterSubmissionController::class, 'employeeInfo']);
+    Route::post('/letters/submit', [LetterSubmissionController::class, 'store']);
+
+});

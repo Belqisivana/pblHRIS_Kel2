@@ -9,30 +9,33 @@ class Letter extends Model
 {
     use HasFactory;
 
+    protected $table = 'letters';
+
     protected $fillable = [
         'letter_format_id',
         'employee_id',
         'name',
         'jabatan',
         'departemen',
-        'tanggal',
+        'tanggal_mulai',
+        'tanggal_selesai',
         'pdf_path',
         'status',
     ];
 
-    protected $casts = [
-        'tanggal' => 'date',
-    ];
-
-    // Relasi ke LetterFormat
-    public function letterFormat()
-    {
-        return $this->belongsTo(LetterFormat::class);
-    }
-
-    // Relasi ke Employee
+    /*
+     * Relasi ke Employee
+     */
     public function employee()
     {
-        return $this->belongsTo(Employee::class, 'employee_id');
+        return $this->belongsTo(Employee::class);
+    }
+
+    /*
+     * Relasi ke LetterFormat
+     */
+    public function format()
+    {
+        return $this->belongsTo(LetterFormat::class, 'letter_format_id');
     }
 }

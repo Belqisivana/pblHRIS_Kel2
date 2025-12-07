@@ -45,7 +45,7 @@ class HomeScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => context.push('/form-surat'),
+                  onPressed: () => context.go('/form-surat'),
                   icon: const Icon(Icons.edit_document),
                   label: const Text('Ajukan Surat'),
                   style: ElevatedButton.styleFrom(
@@ -66,7 +66,7 @@ class HomeScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => context.push('/letters'),
+                  onPressed: () => context.go('/letters'),
                   icon: const Icon(Icons.settings),
                   label: const Text('Kelola Template Surat (Admin)'),
                   style: ElevatedButton.styleFrom(
@@ -87,7 +87,7 @@ class HomeScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => context.push('/hrd-list'),
+                  onPressed: () => context.go('/hrd-list'),
                   icon: const Icon(Icons.list_alt),
                   label: const Text('Daftar Pengajuan (HRD)'),
                   style: ElevatedButton.styleFrom(

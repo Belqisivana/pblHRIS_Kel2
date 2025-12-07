@@ -17,34 +17,73 @@ class _FormSuratPageState extends State<FormSuratPage> {
   final TextEditingController departemenController = TextEditingController();
 
   final LetterController letterController = LetterController();
-  
+
   List<LetterFormat> templateList = [];
   LetterFormat? selectedTemplate;
-  DateTime? selectedDate;
+  DateTime? tanggalMulai;
+  DateTime? tanggalSelesai;
+
   bool isLoading = true;
+
+  int? employeeId;
+  int? positionId;
+  int? departmentId;
 
   @override
   void initState() {
     super.initState();
-    loadTemplates();
+    initData();
   }
 
-  Future<void> loadTemplates() async {
+  Future<void> initData() async {
     setState(() => isLoading = true);
+
     try {
-      print('Loading templates from API...');
+      final profile = await ApiService.fetchProfile();
+
+      print("PROFILE RESPONSE => $profile");
+
+      if (profile == null || profile is! Map) {
+        throw "Response profile tidak valid";
+      }
+
+      // AMBIL EMPLOYEE
+      final data = profile['employee'] ?? profile;
+
+      if (data == null) {
+        throw "Data employee tidak ditemukan";
+      }
+
+      // Simpan ID
+      employeeId = data['id'];
+      positionId = data['position_id'];
+      departmentId = data['department_id'];
+
+      // Autofill input
+      namaController.text = "${data['first_name'] ?? ''} ${data['last_name'] ?? ''}".trim();
+      jabatanController.text = data['position']?['name'] ?? '';
+      departemenController.text = data['department']?['name'] ?? '';
+
+      // Load template surat
       templateList = await letterController.fetchLetterFormats();
       print('✅ Templates loaded: ${templateList.length} items');
       for (var t in templateList) {
         print('  - ${t.id}: ${t.name}');
       }
     } catch (e) {
-      print('❌ Error loading templates: $e');
+      print("ERROR initData(): $e");
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal memuat data: $e")),
+        );
+      }
     }
-    setState(() => isLoading = false);
+
+    if (mounted) setState(() => isLoading = false);
   }
 
-  Future<void> pickDate() async {
+  Future<void> pickTanggalMulai() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -54,59 +93,92 @@ class _FormSuratPageState extends State<FormSuratPage> {
 
     if (picked != null) {
       setState(() {
-        selectedDate = picked;
+        tanggalMulai = picked;
+      });
+    }
+  }
+
+  Future<void> pickTanggalSelesai() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: tanggalMulai ?? DateTime.now(),
+      firstDate: tanggalMulai ?? DateTime.now(),
+      lastDate: DateTime(2050),
+    );
+
+    if (picked != null) {
+      setState(() {
+        tanggalSelesai = picked;
       });
     }
   }
 
   Future<void> submitSurat() async {
-    if (namaController.text.isEmpty ||
-        jabatanController.text.isEmpty ||
-        departemenController.text.isEmpty ||
-        selectedTemplate == null ||
-        selectedDate == null) {
+    // ✅ FIX: Validasi lengkap
+    if (selectedTemplate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Semua field harus diisi!')),
+        const SnackBar(content: Text('Pilih jenis surat terlebih dahulu!')),
       );
       return;
     }
 
+    if (tanggalMulai == null || tanggalSelesai == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih tanggal mulai dan selesai!')),
+      );
+      return;
+    }
+
+    // ✅ FIX: Sesuaikan data dengan backend
     final data = {
       'letter_format_id': selectedTemplate!.id,
       'name': namaController.text,
       'jabatan': jabatanController.text,
       'departemen': departemenController.text,
-      'tanggal': selectedDate!.toIso8601String().split('T')[0],
+      'tanggal': tanggalMulai!.toIso8601String().split('T')[0],
+      // Kirim juga employee_id jika backend support
+      if (employeeId != null) 'employee_id': employeeId,
     };
 
+    print('📤 Submitting letter data: $data');
+
     try {
-      final result = await ApiService.createSurat(data);
-      final success = result['success'] as bool? ?? false;
-      
+      final success = await ApiService.createPengajuanSurat(data);
+
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Surat berhasil diajukan!')),
+          const SnackBar(
+            content: Text('✅ Surat berhasil diajukan!'),
+            backgroundColor: Colors.green,
+          ),
         );
-        
-        // Kembali ke home screen
+
+        // Kembali ke home
         context.go('/');
       } else {
+        // ✅ FIX: Hapus reference ke 'result' yang tidak ada
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal mengajukan surat: ${result['body']}')),
+            const SnackBar(
+              content: Text('❌ Gagal mengajukan surat'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } catch (e) {
+      print('❌ Submit error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('❌ Error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 
-  // Widget input box cantik
   Widget inputBox({required Widget child}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
@@ -119,7 +191,7 @@ class _FormSuratPageState extends State<FormSuratPage> {
             color: Colors.black.withOpacity(0.05),
             blurRadius: 6,
             offset: const Offset(0, 3),
-          )
+          ),
         ],
       ),
       child: child,
@@ -129,14 +201,10 @@ class _FormSuratPageState extends State<FormSuratPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // soft blue background
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xffe7f2ff),
-              Color(0xffd3e8ff),
-            ],
+            colors: [Color(0xffe7f2ff), Color(0xffd3e8ff)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -148,15 +216,16 @@ class _FormSuratPageState extends State<FormSuratPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Back button
                   IconButton(
                     onPressed: () => context.pop(),
-                    icon: const Icon(Icons.arrow_back, color: Color(0xff1e6ab3)),
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Color(0xff1e6ab3),
+                    ),
                   ),
-                  
+
                   const SizedBox(height: 5),
 
-                  // JUDUL
                   const Text(
                     "Form Pengajuan Surat",
                     style: TextStyle(
@@ -174,6 +243,7 @@ class _FormSuratPageState extends State<FormSuratPage> {
                     inputBox(
                       child: TextField(
                         controller: namaController,
+                        readOnly: true,
                         decoration: const InputDecoration(
                           border: InputBorder.none,
                           hintText: "Nama Lengkap",
@@ -186,6 +256,7 @@ class _FormSuratPageState extends State<FormSuratPage> {
                     inputBox(
                       child: TextField(
                         controller: jabatanController,
+                        readOnly: true,
                         decoration: const InputDecoration(
                           border: InputBorder.none,
                           hintText: "Jabatan",
@@ -198,6 +269,7 @@ class _FormSuratPageState extends State<FormSuratPage> {
                     inputBox(
                       child: TextField(
                         controller: departemenController,
+                        readOnly: true,
                         decoration: const InputDecoration(
                           border: InputBorder.none,
                           hintText: "Departemen",
@@ -206,7 +278,7 @@ class _FormSuratPageState extends State<FormSuratPage> {
                     ),
                     const SizedBox(height: 18),
 
-                    // JENIS SURAT DROPDOWN (DINAMIS)
+                    // TEMPLATE
                     inputBox(
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<LetterFormat>(
@@ -232,23 +304,52 @@ class _FormSuratPageState extends State<FormSuratPage> {
                     ),
                     const SizedBox(height: 18),
 
-                    // TANGGAL
+                    // TANGGAL MULAI
                     GestureDetector(
-                      onTap: pickDate,
+                      onTap: pickTanggalMulai,
                       child: inputBox(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              selectedDate == null
-                                  ? "Pilih Tanggal"
-                                  : "${selectedDate!.day}-${selectedDate!.month}-${selectedDate!.year}",
+                              tanggalMulai == null
+                                  ? "Pilih Tanggal Mulai"
+                                  : "${tanggalMulai!.day}-${tanggalMulai!.month}-${tanggalMulai!.year}",
                               style: const TextStyle(
                                 fontSize: 16,
                                 color: Colors.blue,
                               ),
                             ),
-                            const Icon(Icons.calendar_month, color: Colors.blue),
+                            const Icon(
+                              Icons.calendar_month,
+                              color: Colors.blue,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // TANGGAL SELESAI
+                    GestureDetector(
+                      onTap: pickTanggalSelesai,
+                      child: inputBox(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              tanggalSelesai == null
+                                  ? "Pilih Tanggal Selesai"
+                                  : "${tanggalSelesai!.day}-${tanggalSelesai!.month}-${tanggalSelesai!.year}",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.blue,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.calendar_month,
+                              color: Colors.blue,
+                            ),
                           ],
                         ),
                       ),
@@ -256,7 +357,7 @@ class _FormSuratPageState extends State<FormSuratPage> {
 
                     const SizedBox(height: 35),
 
-                    // BUTTON AJUKAN
+                    // TOMBOL SUBMIT
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(

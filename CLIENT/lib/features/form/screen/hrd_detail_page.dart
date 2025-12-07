@@ -46,8 +46,7 @@ class HrdDetailPage extends StatelessWidget {
     );
 
     if (confirm == true && context.mounted) {
-      final result = await ApiService.updateStatus(surat['id'], status);
-      final success = result['success'] as bool? ?? false;
+      final success = await ApiService.updateStatus(surat['id'], status);
 
       if (context.mounted) {
         if (success) {
@@ -64,7 +63,7 @@ class HrdDetailPage extends StatelessWidget {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Gagal update status: ${result['body']}'),
+              content: Text('Gagal update status'),
               duration: const Duration(seconds: 5),
             ),
           );

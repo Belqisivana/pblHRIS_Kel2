@@ -5,20 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Position extends Model
+class Department extends Model
 {
     use HasFactory;
 
-    protected $table = 'positions';
+    protected $table = 'departments';
 
     protected $fillable = [
         'name',
-        'rate_regular',
-        'rate_overtime',
+        'radius',
     ];
 
     /**
-     * Relasi: 1 posisi → banyak karyawan
+     * Relasi: satu department punya banyak employee
      */
     public function employees()
     {

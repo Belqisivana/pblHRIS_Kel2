@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
 {
+    use HasFactory;
+
     protected $table = 'employees';
+
     protected $fillable = [
         'user_id',
         'position_id',
@@ -14,30 +18,46 @@ class Employee extends Model
         'first_name',
         'last_name',
         'gender',
-        'address'
+        'address',
     ];
 
-    // Relasi ke Department (note: model class is `Departement` in this repo)
-    public function department()
-    {
-        return $this->belongsTo(Departement::class, 'department_id');
-    }
-
-    // Relasi ke Position
-    public function position()
-    {
-        return $this->belongsTo(Position::class, 'position_id');
-    }
-
-    // Relasi ke Letters
-    public function letters()
-    {
-        return $this->hasMany(Letter::class, 'employee_id');
-    }
-
-    // Relasi ke User
+    /*
+     * Relasi ke User
+     */
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /*
+     * Relasi ke Position
+     */
+    public function position()
+    {
+        return $this->belongsTo(Position::class);
+    }
+
+    /*
+     * Relasi ke Department
+     */
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    /*
+     * Relasi ke Letters (1 employee → banyak letters)
+     */
+    public function letters()
+    {
+        return $this->hasMany(Letter::class);
+    }
+
+    /*
+     * Relasi ke CheckClocks
+     */
+    public function checkClocks()
+    {
+        return $this->hasMany(CheckClock::class);
     }
 }

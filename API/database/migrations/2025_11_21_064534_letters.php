@@ -14,19 +14,23 @@ return new class extends Migration
         Schema::create('letters', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('letter_format_id');
-            $table->unsignedBigInteger('employee_id')->nullable(); // GANTI JADI employee_id
+            $table->unsignedBigInteger('employee_id');
             $table->string('name', 100);
             $table->string('jabatan', 100);
             $table->string('departemen', 100);
-            $table->date('tanggal');
+            $table->date('tanggal_mulai');
+            $table->date('tanggal_selesai');
             $table->string('pdf_path')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
 
+            $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->foreign('letter_format_id')->references('id')->on('letter_formats')->onDelete('cascade');
-            $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade'); // GANTI
+            // $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade'); // GANTI
         });
     }
+
+
 
     /**
      * Reverse the migrations.
