@@ -20,7 +20,8 @@ class _FormSuratPageState extends State<FormSuratPage> {
 
   List<LetterFormat> templateList = [];
   LetterFormat? selectedTemplate;
-  DateTime? selectedDate;
+  DateTime? tanggalMulai;
+  DateTime? tanggalSelesai;
 
   bool isLoading = true;
 
@@ -78,7 +79,7 @@ class _FormSuratPageState extends State<FormSuratPage> {
     if (mounted) setState(() => isLoading = false);
   }
 
-  Future<void> pickDate() async {
+  Future<void> pickTanggalMulai() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -88,13 +89,28 @@ class _FormSuratPageState extends State<FormSuratPage> {
 
     if (picked != null) {
       setState(() {
-        selectedDate = picked;
+        tanggalMulai = picked;
+      });
+    }
+  }
+
+  Future<void> pickTanggalSelesai() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: tanggalMulai ?? DateTime.now(),
+      firstDate: tanggalMulai ?? DateTime.now(),
+      lastDate: DateTime(2050),
+    );
+
+    if (picked != null) {
+      setState(() {
+        tanggalSelesai = picked;
       });
     }
   }
 
   Future<void> submitSurat() async {
-    if (selectedTemplate == null || selectedDate == null) {
+    if (selectedTemplate == null || tanggalMulai == null || tanggalSelesai == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Semua field harus diisi!')));
@@ -106,7 +122,8 @@ class _FormSuratPageState extends State<FormSuratPage> {
       'employee_id': employeeId,
       'position_id': positionId,
       'department_id': departmentId,
-      'tanggal': selectedDate!.toIso8601String().split('T')[0],
+      'tanggal_mulai': tanggalMulai!.toIso8601String().split('T')[0],
+      'tanggal_selesai': tanggalSelesai!.toIso8601String().split('T')[0],
     };
 
     try {
@@ -259,17 +276,42 @@ class _FormSuratPageState extends State<FormSuratPage> {
                     ),
                     const SizedBox(height: 18),
 
-                    // DATE
+                    // DATE (tanggal mulai)
                     GestureDetector(
-                      onTap: pickDate,
+                      onTap: pickTanggalMulai,
                       child: inputBox(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              selectedDate == null
-                                  ? "Pilih Tanggal"
-                                  : "${selectedDate!.day}-${selectedDate!.month}-${selectedDate!.year}",
+                              tanggalMulai == null
+                                  ? "Pilih Tanggal Mulai"
+                                  : "${tanggalMulai!.day}-${tanggalMulai!.month}-${tanggalMulai!.year}",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.blue,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.calendar_month,
+                              color: Colors.blue,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // tanggal selesai
+                    const SizedBox(height: 35),
+                    GestureDetector(
+                      onTap: pickTanggalSelesai,
+                      child: inputBox(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              tanggalSelesai == null
+                                  ? "Pilih Tanggal Selesai"
+                                  : "${tanggalSelesai!.day}-${tanggalSelesai!.month}-${tanggalSelesai!.year}",
                               style: const TextStyle(
                                 fontSize: 16,
                                 color: Colors.blue,

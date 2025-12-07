@@ -12,7 +12,7 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('token');
   }
-
+  //(DENGAN FITUR LOGIN YANG MENYIMPAN TOKEN)
   // static Future<Map<String, String>> _headersWithToken() async {
   //   final token = await _getToken();
 
@@ -22,9 +22,9 @@ class ApiService {
   //     if (token != null) 'Authorization': 'Bearer $token',
   //   };
   // }
-
+  //(INI BUAT TESTING TANPA LOGIN)
   static Future<Map<String, String>> _headersWithToken() async {
-    const token = "1|Mt3bgOtEUOaVsFacQAjMbEJvGrY6SdchCJXgJmB20dde084a";
+    const token = "1|C6BP43cTuta6dAwaKvVosL1rREehAVI6Cruh0J3jbdd82338";
 
     return {
       "Accept": "application/json",
