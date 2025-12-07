@@ -17,7 +17,8 @@ class Letter extends Model
         'name',
         'jabatan',
         'departemen',
-        'tanggal',
+        'tanggal_mulai',
+        'tanggal_selesai',
         'pdf_path',
         'status',
     ];

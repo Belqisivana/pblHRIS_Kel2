@@ -34,11 +34,14 @@ class LetterSubmissionController extends Controller
 
     public function store(Request $request)
     {
-        // $request->validated([
-        //     'letter_format_id' => 'required|exists:letter_format,id',
-        //     'tanggal' => 'required|date',
-        // ]);
+        // VALIDASI 
+        $validated = $request->validate([
+            'letter_format_id' => 'required|exists:letter_formats,id',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+        ]);
 
+        // AMBIL EMPLOYEE BERDASARKAN USER LOGIN
         $employee = Employee::where('user_id', Auth::id())->first();
 
         if (!$employee) {
@@ -48,20 +51,22 @@ class LetterSubmissionController extends Controller
             ], 404);
         }
 
+        // MEMBUAT SURAT BARU
         $letter = Letter::create([
-            'letter_format_id' => $request->letter_format_id,
+            'letter_format_id' => $validated['letter_format_id'],
             'employee_id' => $employee->id,
             'name' => $employee->first_name . ' ' . $employee->last_name,
             'jabatan' => $employee->position->name,
             'departemen' => $employee->department->name,
-            'tanggal' => $request->tanggal,
-            'status' => 'pending'
+            'tanggal_mulai' => $validated['tanggal_mulai'],
+            'tanggal_selesai' => $validated['tanggal_selesai'],
+            'status' => 'pending',
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Pengajuan telah dibuat.',
-            'data' => $letter
+            'data' => $letter,
         ], 201);
     }
 }

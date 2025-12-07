@@ -18,7 +18,8 @@ return new class extends Migration
             $table->string('name', 100);
             $table->string('jabatan', 100);
             $table->string('departemen', 100);
-            $table->date('tanggal');
+            $table->date('tanggal_mulai');
+            $table->date('tanggal_selesai');
             $table->string('pdf_path')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
