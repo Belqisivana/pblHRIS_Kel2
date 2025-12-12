@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseURL = "http://127.0.0.1:8000/api";
+  static const String baseURL = "https://nontransferential-zola-remonstratingly.ngrok-free.dev/api";
 
   // ============================
   // TOKEN MANAGEMENT

@@ -26,7 +26,6 @@ return new class extends Migration
 
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->foreign('letter_format_id')->references('id')->on('letter_formats')->onDelete('cascade');
-            // $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade'); // GANTI
         });
     }
 

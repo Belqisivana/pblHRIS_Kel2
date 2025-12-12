@@ -53,6 +53,27 @@ Hormat saya,
                 'updated_at' => now(),
             ],
             [
+                'name' => 'Surat Cuti',
+                'content' => "SURAT CUTI
+
+Kepada Yth,
+HRD / Atasan Langsung
+
+Dengan ini saya, {{nama}}, mengajukan permohonan cuti
+pada tanggal {{tanggal}} karena keperluan profesi.
+
+Jabatan: {{jabatan}}
+Departemen: {{departemen}}
+
+Demikian permohonan ini saya sampaikan.
+Atas pengertian dan kebijaksanaannya saya ucapkan terima kasih.
+
+Hormat saya,
+{{nama}}",
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
                 'name' => 'Surat Tugas Bekerja di Luar Kantor',
                 'content' => "SURAT TUGAS BEKERJA DI LUAR KANTOR
 

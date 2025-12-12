@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // ✅ TAMBAHKAN INI untuk Uint8List
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'dart:html' as html;
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import '../services/api_service.dart';
 
 class HrdDetailPage extends StatelessWidget {
@@ -88,11 +91,11 @@ class HrdDetailPage extends StatelessWidget {
     }
   }
 
+  // ✅ GABUNGKAN method downloadPdf dan _downloadPdf jadi satu
   Future<void> downloadPdf(BuildContext context) async {
     try {
       print('🔽 Starting PDF download for letter ID: ${surat['id']}');
 
-      // Show loading
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -113,22 +116,36 @@ class HrdDetailPage extends StatelessWidget {
         
         print('💾 Saving as: $fileName');
 
-        // ✅ Create blob and download
-        final blob = html.Blob([pdfBytes], 'application/pdf');
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', fileName)
-          ..click();
-        
-        html.Url.revokeObjectUrl(url);
+        // ✅ Simpan ke folder yang tepat
+        final directory = Platform.isAndroid
+            ? Directory('/storage/emulated/0/Download')
+            : await getApplicationDocumentsDirectory();
+
+        final file = File('${directory.path}/$fileName');
+        await file.writeAsBytes(pdfBytes);
+
+        print('✅ File saved to: ${file.path}');
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✅ PDF berhasil diunduh: $fileName'),
+              content: Text('✅ PDF tersimpan di: ${file.path}'),
               backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Buka',
+                textColor: Colors.white,
+                onPressed: () async {
+                  try {
+                    final uri = Uri.file(file.path);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  } catch (e) {
+                    print('Error opening PDF: $e');
+                  }
+                },
+              ),
             ),
           );
         }

@@ -8,7 +8,7 @@ class EmployeeRecapService {
       print('🔄 Fetching employee recap...');
       
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/api/employee-recap'),
+        Uri.parse('https://nontransferential-zola-remonstratingly.ngrok-free.dev/api/employee-recap'),
       );
       
       print('📡 Response status: ${response.statusCode}');

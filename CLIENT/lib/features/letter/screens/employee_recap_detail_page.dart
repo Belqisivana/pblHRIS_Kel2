@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/employee_recap.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http; // ✅ TAMBAHKAN
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class EmployeeRecapDetailPage extends StatelessWidget {
   final EmployeeRecap employee;
@@ -346,33 +348,81 @@ class EmployeeRecapDetailPage extends StatelessWidget {
     }
   }
 
-  void _downloadPdf(BuildContext context) async {
-    final url = 'http://127.0.0.1:8000/api/employee-recap/pdf?user_id=${employee.id}';
+  // ✅ GANTI METHOD INI - Download Langsung ke Storage
+  Future<void> _downloadPdf(BuildContext context) async {
+    final url = 'https://nontransferential-zola-remonstratingly.ngrok-free.dev/api/employee-recap/pdf?user_id=${employee.id}';
     
     try {
-      final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      print('🔽 Starting PDF download from: $url');
+
+      // Show loading
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⏳ Mengunduh PDF...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // ✅ Download via HTTP dengan header ngrok-skip-browser-warning
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'ngrok-skip-browser-warning': 'true', // ✅ Bypass ngrok warning
+        },
+      );
+
+      print('📥 Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        // ✅ Simpan ke folder Download
+        final directory = Platform.isAndroid
+            ? Directory('/storage/emulated/0/Download')
+            : await getApplicationDocumentsDirectory();
+
+        final fileName = 'employee_recap_${employee.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+        final file = File('${directory.path}/$fileName');
         
+        await file.writeAsBytes(response.bodyBytes);
+
+        print('✅ File saved to: ${file.path}');
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Download PDF berhasil!'),
+            SnackBar(
+              content: Text('✅ PDF tersimpan di:\n${file.path}'),
               backgroundColor: Colors.green,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'OK',
+                textColor: Colors.white,
+                onPressed: () {},
+              ),
             ),
           );
         }
       } else {
+        print('❌ Error: ${response.statusCode}');
+        
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak dapat membuka URL download')),
+            SnackBar(
+              content: Text('❌ Error: ${response.statusCode} - ${response.reasonPhrase}'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } catch (e) {
+      print('❌ Download error: $e');
+      
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('❌ Error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
